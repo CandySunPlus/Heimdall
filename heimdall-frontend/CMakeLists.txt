@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.11)
 
 project(heimdall-frontend)
 
@@ -47,6 +47,7 @@ add_executable(heimdall-frontend WIN32
     ${HEIMDALL_FRONTEND_SOURCE_FILES}
     ${HEIMDALL_FRONTEND_FORMS}
     ${HEIMDALL_FRONTEND_RESOURCES})
+target_compile_features(heimdall-frontend PRIVATE cxx_std_11)
 
 include(LargeFiles)
 use_large_files(heimdall-frontend YES)
