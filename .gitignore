@@ -2,3 +2,5 @@
 ._*
 .idea/
 /build/
+.cache
+*.img

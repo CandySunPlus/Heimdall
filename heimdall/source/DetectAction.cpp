@@ -1,15 +1,15 @@
 /* Copyright (c) 2010-2017 Benjamin Dobell, Glass Echidna
- 
+
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  copies of the Software, and to permit persons to whom the Software is
  furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included in
  all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,86 +19,79 @@
  THE SOFTWARE.*/
 
 // Heimdall
+#include "DetectAction.h"
 #include "Arguments.h"
 #include "BridgeManager.h"
-#include "DetectAction.h"
 #include "Heimdall.h"
 #include "Interface.h"
 
 using namespace std;
 using namespace Heimdall;
 
-const char *DetectAction::usage = "Action: detect\n\
+const char* DetectAction::usage = "Action: detect\n\
 Arguments: [--verbose] [--stdout-errors]\n\
            [--usb-log-level <none/error/warning/debug>]\n\
 Description: Indicates whether or not a download mode device can be detected.\n";
 
-int DetectAction::Execute(int argc, char **argv)
-{
-	// Handle arguments
+int DetectAction::Execute(int argc, char** argv) {
+    // Handle arguments
 
-	map<string, ArgumentType> argumentTypes;
-	argumentTypes["verbose"] = kArgumentTypeFlag;
-	argumentTypes["stdout-errors"] = kArgumentTypeFlag;
-	argumentTypes["usb-log-level"] = kArgumentTypeString;
+    map<string, ArgumentType> argumentTypes;
+    argumentTypes["verbose"] = kArgumentTypeFlag;
+    argumentTypes["stdout-errors"] = kArgumentTypeFlag;
+    argumentTypes["usb-log-level"] = kArgumentTypeString;
+    argumentTypes["usbpath"] = kArgumentTypeString;
 
-	Arguments arguments(argumentTypes);
+    Arguments arguments(argumentTypes);
 
-	if (!arguments.ParseArguments(argc, argv, 2))
-	{
-		Interface::Print(DetectAction::usage);
-		return (0);
-	}
+    if (!arguments.ParseArguments(argc, argv, 2)) {
+        Interface::Print(DetectAction::usage);
+        return (0);
+    }
 
-	bool verbose = arguments.GetArgument("verbose") != nullptr;
-	
-	if (arguments.GetArgument("stdout-errors") != nullptr)
-		Interface::SetStdoutErrors(true);
+    bool verbose = arguments.GetArgument("verbose") != nullptr;
 
-	const StringArgument *usbLogLevelArgument = static_cast<const StringArgument *>(arguments.GetArgument("usb-log-level"));
+    if (arguments.GetArgument("stdout-errors") != nullptr)
+        Interface::SetStdoutErrors(true);
 
-	BridgeManager::UsbLogLevel usbLogLevel = BridgeManager::UsbLogLevel::Default;
+    const StringArgument* usbLogLevelArgument =
+        static_cast<const StringArgument*>(arguments.GetArgument("usb-log-level"));
+    const StringArgument* usbpath = static_cast<const StringArgument*>(arguments.GetArgument("usbpath"));
 
-	if (usbLogLevelArgument)
-	{
-		const string& usbLogLevelString = usbLogLevelArgument->GetValue();
+    BridgeManager::UsbLogLevel usbLogLevel = BridgeManager::UsbLogLevel::Default;
 
-		if (usbLogLevelString.compare("none") == 0 || usbLogLevelString.compare("NONE") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::None;
-		}
-		else if (usbLogLevelString.compare("error") == 0 || usbLogLevelString.compare("ERROR") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Error;
-		}
-		else if (usbLogLevelString.compare("warning") == 0 || usbLogLevelString.compare("WARNING") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Warning;
-		}
-		else if (usbLogLevelString.compare("info") == 0 || usbLogLevelString.compare("INFO") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Info;
-		}
-		else if (usbLogLevelString.compare("debug") == 0 || usbLogLevelString.compare("DEBUG") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Debug;
-		}
-		else
-		{
-			Interface::Print("Unknown USB log level: %s\n\n", usbLogLevelString.c_str());
-			Interface::Print(DetectAction::usage);
-			return (0);
-		}
-	}
+    if (usbLogLevelArgument) {
+        const string& usbLogLevelString = usbLogLevelArgument->GetValue();
 
-	// Download PIT file from device.
+        if (usbLogLevelString.compare("none") == 0 || usbLogLevelString.compare("NONE") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::None;
+        } else if (usbLogLevelString.compare("error") == 0 || usbLogLevelString.compare("ERROR") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Error;
+        } else if (usbLogLevelString.compare("warning") == 0 || usbLogLevelString.compare("WARNING") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Warning;
+        } else if (usbLogLevelString.compare("info") == 0 || usbLogLevelString.compare("INFO") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Info;
+        } else if (usbLogLevelString.compare("debug") == 0 || usbLogLevelString.compare("DEBUG") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Debug;
+        } else {
+            Interface::Print("Unknown USB log level: %s\n\n", usbLogLevelString.c_str());
+            Interface::Print(DetectAction::usage);
+            return (0);
+        }
+    }
 
-	BridgeManager *bridgeManager = new BridgeManager(verbose);
-	bridgeManager->SetUsbLogLevel(usbLogLevel);
+    // Download PIT file from device.
 
-	bool detected = bridgeManager->DetectDevice();
+    if (!usbpath) {
+        Interface::PrintError("You need to set the usbpath of the device you want to operate");
+        return (1);
+    }
+    BridgeManager* bridgeManager = new BridgeManager(verbose, usbpath->GetValue().c_str());
+    bridgeManager->SetUsbLogLevel(usbLogLevel);
 
-	delete bridgeManager;
+    bool detected = bridgeManager->DetectDevice();
 
-	return ((detected) ? 0 : 1);
+    delete bridgeManager;
+
+    return ((detected) ? 0 : 1);
 }

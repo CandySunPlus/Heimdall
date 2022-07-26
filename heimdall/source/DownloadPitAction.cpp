@@ -1,15 +1,15 @@
 /* Copyright (c) 2010-2017 Benjamin Dobell, Glass Echidna
- 
+
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  copies of the Software, and to permit persons to whom the Software is
  furnished to do so, subject to the following conditions:
- 
+
  The above copyright notice and this permission notice shall be included in
  all copies or substantial portions of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,7 +31,7 @@
 using namespace std;
 using namespace Heimdall;
 
-const char *DownloadPitAction::usage = "Action: download-pit\n\
+const char* DownloadPitAction::usage = "Action: download-pit\n\
 Arguments: --output <filename> [--verbose] [--no-reboot] [--stdout-errors]\n\
     [--usb-log-level <none/error/warning/debug>]\n\
 Description: Downloads the connected device's PIT file to the specified\n\
@@ -40,132 +40,118 @@ Note: --no-reboot causes the device to remain in download mode after the action\
       is completed. If you wish to perform another action whilst remaining in\n\
       download mode, then the following action must specify the --resume flag.\n";
 
-int DownloadPitAction::Execute(int argc, char **argv)
-{
-	// Handle arguments
+int DownloadPitAction::Execute(int argc, char** argv) {
+    // Handle arguments
 
-	map<string, ArgumentType> argumentTypes;
-	argumentTypes["output"] = kArgumentTypeString;
-	argumentTypes["no-reboot"] = kArgumentTypeFlag;
-	argumentTypes["resume"] = kArgumentTypeFlag;
-	argumentTypes["verbose"] = kArgumentTypeFlag;
-	argumentTypes["stdout-errors"] = kArgumentTypeFlag;
-	argumentTypes["usb-log-level"] = kArgumentTypeString;
+    map<string, ArgumentType> argumentTypes;
+    argumentTypes["output"] = kArgumentTypeString;
+    argumentTypes["no-reboot"] = kArgumentTypeFlag;
+    argumentTypes["resume"] = kArgumentTypeFlag;
+    argumentTypes["verbose"] = kArgumentTypeFlag;
+    argumentTypes["stdout-errors"] = kArgumentTypeFlag;
+    argumentTypes["usb-log-level"] = kArgumentTypeString;
+    argumentTypes["usbpath"] = kArgumentTypeString;
 
-	Arguments arguments(argumentTypes);
+    Arguments arguments(argumentTypes);
 
-	if (!arguments.ParseArguments(argc, argv, 2))
-	{
-		Interface::Print(DownloadPitAction::usage);
-		return (0);
-	}
+    if (!arguments.ParseArguments(argc, argv, 2)) {
+        Interface::Print(DownloadPitAction::usage);
+        return (0);
+    }
 
-	const StringArgument *outputArgument = static_cast<const StringArgument *>(arguments.GetArgument("output"));
+    const StringArgument* outputArgument = static_cast<const StringArgument*>(arguments.GetArgument("output"));
+    const StringArgument* usbpath = static_cast<const StringArgument*>(arguments.GetArgument("usbpath"));
 
-	if (!outputArgument)
-	{
-		Interface::Print("Output file was not specified.\n\n");
-		Interface::Print(DownloadPitAction::usage);
-		return (0);
-	}
+    if (!outputArgument) {
+        Interface::Print("Output file was not specified.\n\n");
+        Interface::Print(DownloadPitAction::usage);
+        return (0);
+    }
 
-	bool reboot = arguments.GetArgument("no-reboot") == nullptr;
-	bool resume = arguments.GetArgument("resume") != nullptr;
-	bool verbose = arguments.GetArgument("verbose") != nullptr;
-	
-	if (arguments.GetArgument("stdout-errors") != nullptr)
-		Interface::SetStdoutErrors(true);
+    bool reboot = arguments.GetArgument("no-reboot") == nullptr;
+    bool resume = arguments.GetArgument("resume") != nullptr;
+    bool verbose = arguments.GetArgument("verbose") != nullptr;
 
-	const StringArgument *usbLogLevelArgument = static_cast<const StringArgument *>(arguments.GetArgument("usb-log-level"));
+    if (arguments.GetArgument("stdout-errors") != nullptr)
+        Interface::SetStdoutErrors(true);
 
-	BridgeManager::UsbLogLevel usbLogLevel = BridgeManager::UsbLogLevel::Default;
+    const StringArgument* usbLogLevelArgument =
+        static_cast<const StringArgument*>(arguments.GetArgument("usb-log-level"));
 
-	if (usbLogLevelArgument)
-	{
-		const string& usbLogLevelString = usbLogLevelArgument->GetValue();
+    BridgeManager::UsbLogLevel usbLogLevel = BridgeManager::UsbLogLevel::Default;
 
-		if (usbLogLevelString.compare("none") == 0 || usbLogLevelString.compare("NONE") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::None;
-		}
-		else if (usbLogLevelString.compare("error") == 0 || usbLogLevelString.compare("ERROR") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Error;
-		}
-		else if (usbLogLevelString.compare("warning") == 0 || usbLogLevelString.compare("WARNING") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Warning;
-		}
-		else if (usbLogLevelString.compare("info") == 0 || usbLogLevelString.compare("INFO") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Info;
-		}
-		else if (usbLogLevelString.compare("debug") == 0 || usbLogLevelString.compare("DEBUG") == 0)
-		{
-			usbLogLevel = BridgeManager::UsbLogLevel::Debug;
-		}
-		else
-		{
-			Interface::Print("Unknown USB log level: %s\n\n", usbLogLevelString.c_str());
-			Interface::Print(DownloadPitAction::usage);
-			return (0);
-		}
-	}
+    if (usbLogLevelArgument) {
+        const string& usbLogLevelString = usbLogLevelArgument->GetValue();
 
-	// Info
+        if (usbLogLevelString.compare("none") == 0 || usbLogLevelString.compare("NONE") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::None;
+        } else if (usbLogLevelString.compare("error") == 0 || usbLogLevelString.compare("ERROR") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Error;
+        } else if (usbLogLevelString.compare("warning") == 0 || usbLogLevelString.compare("WARNING") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Warning;
+        } else if (usbLogLevelString.compare("info") == 0 || usbLogLevelString.compare("INFO") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Info;
+        } else if (usbLogLevelString.compare("debug") == 0 || usbLogLevelString.compare("DEBUG") == 0) {
+            usbLogLevel = BridgeManager::UsbLogLevel::Debug;
+        } else {
+            Interface::Print("Unknown USB log level: %s\n\n", usbLogLevelString.c_str());
+            Interface::Print(DownloadPitAction::usage);
+            return (0);
+        }
+    }
 
-	Interface::PrintReleaseInfo();
-	Sleep(1000);
+    // Info
 
-	// Open output file
+    Interface::PrintReleaseInfo();
+    Sleep(1000);
 
-	const char *outputFilename = outputArgument->GetValue().c_str();
-	FILE *outputPitFile = FileOpen(outputFilename, "wb");
+    // Open output file
 
-	if (!outputPitFile)
-	{
-		Interface::PrintError("Failed to open output file \"%s\"\n", outputFilename);
-		return (1);
-	}
+    const char* outputFilename = outputArgument->GetValue().c_str();
+    FILE* outputPitFile = FileOpen(outputFilename, "wb");
 
-	// Download PIT file from device.
+    if (!outputPitFile) {
+        Interface::PrintError("Failed to open output file \"%s\"\n", outputFilename);
+        return (1);
+    }
 
-	BridgeManager *bridgeManager = new BridgeManager(verbose);
-	bridgeManager->SetUsbLogLevel(usbLogLevel);
+    // Download PIT file from device.
+    if (!usbpath) {
+        Interface::PrintError("You need to set the usbpath of the device you want to operate");
+        return (1);
+    }
 
-	if (bridgeManager->Initialise(resume) != BridgeManager::kInitialiseSucceeded || !bridgeManager->BeginSession())
-	{
-		FileClose(outputPitFile);
-		delete bridgeManager;
+    BridgeManager* bridgeManager = new BridgeManager(verbose, usbpath->GetValue().c_str());
+    bridgeManager->SetUsbLogLevel(usbLogLevel);
 
-		return (1);
-	}
+    if (bridgeManager->Initialise(resume) != BridgeManager::kInitialiseSucceeded || !bridgeManager->BeginSession()) {
+        FileClose(outputPitFile);
+        delete bridgeManager;
 
-	unsigned char *pitBuffer;
-	int fileSize = bridgeManager->DownloadPitFile(&pitBuffer);
+        return (1);
+    }
 
-	bool success = true;
+    unsigned char* pitBuffer;
+    int fileSize = bridgeManager->DownloadPitFile(&pitBuffer);
 
-	if (fileSize > 0)
-	{
-		if (fwrite(pitBuffer, 1, fileSize, outputPitFile) != fileSize)
-		{
-			Interface::PrintError("Failed to write PIT data to output file.\n");
-			success = false;
-		}
-	}
-	else
-	{
-		success = false;
-	}
+    bool success = true;
 
-	if (!bridgeManager->EndSession(reboot))
-		success = false;
+    if (fileSize > 0) {
+        if (fwrite(pitBuffer, 1, fileSize, outputPitFile) != fileSize) {
+            Interface::PrintError("Failed to write PIT data to output file.\n");
+            success = false;
+        }
+    } else {
+        success = false;
+    }
 
-	delete bridgeManager;
-	
-	FileClose(outputPitFile);
-	delete [] pitBuffer;
+    if (!bridgeManager->EndSession(reboot))
+        success = false;
 
-	return (success ? 0 : 1);
+    delete bridgeManager;
+
+    FileClose(outputPitFile);
+    delete[] pitBuffer;
+
+    return (success ? 0 : 1);
 }
