@@ -42,9 +42,11 @@ flash() {
                     echo "model ${model#model:} not supported"
                     ;;
             esac
-            if [ -n "$IMG_FILE" ]; then
+            if [ -f "$IMG_FILE" ]; then
                 run $serial $model $usbpath $IMG_FILE &
                 wait
+            else
+                echo "rom file: $IMG_FILE not found"
             fi
         done
     done
