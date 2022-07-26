@@ -3,7 +3,20 @@
 FILE=/tmp/flash_prepare
 
 prepare() {
-    adb devices -l | grep transport | awk '{print $3,$5}' > $FILE
+    adb devices -l | grep transport | awk '{print $1,$3,$5}' > $FILE
+}
+
+run() {
+    serial=$1
+    model=$2
+    usbpath=$3
+    IMG_FILE=$4
+
+    pwd
+    echo "Flashing $model $usbpath ..."
+    adb -s $serial reboot bootloader
+    sleep 5
+    ./bin/heimdall flash --BOOT $IMG_FILE --usbpath ${usbpath#usb:} 
 }
 
 flash() {
@@ -16,9 +29,23 @@ flash() {
     devices=`cat /tmp/flash_prepare`
     for device in $devices; do
         IFS=" "
-        echo $device | while read usbpath model; do
-            echo ${usbpath#usb:}
-            echo ${model#model:}
+        echo $device | while read serial usbpath model; do
+            IMG_FILE=
+            case ${model#model:} in
+                SM_G9500)
+                    IMG_FILE="./roms/G9500-boot.img"
+                    ;;
+                SM_G9550)
+                    IMG_FILE="./roms/G9550-boot.img"
+                    ;;
+                *)
+                    echo "model ${model#model:} not supported"
+                    ;;
+            esac
+            if [ -n "$IMG_FILE" ]; then
+                run $serial $model $usbpath $IMG_FILE &
+                wait
+            fi
         done
     done
     IFS=OLD_IFS
