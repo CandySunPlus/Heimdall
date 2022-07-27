@@ -96,9 +96,9 @@ int BridgeManager::FindDeviceInterface(void) {
         char usb_path[20];
 
         if (bus_num > 0 && port_numbers_len > 0) {
-            std::sprintf(usb_path, "%d-%d", bus_num, usb_port_numbers[0]);
+            snprintf(usb_path, sizeof(usb_path), "%d-%d", bus_num, usb_port_numbers[0]);
             for (int i = 1; i < port_numbers_len; i++) {
-                std::sprintf(usb_path + std::strlen(usb_path), ".%d", usb_port_numbers[i]);
+                snprintf(usb_path + std::strlen(usb_path), sizeof(usb_path), ".%d", usb_port_numbers[i]);
             }
             Interface::Print("Device usbpath: %s\n", usb_path);
         }
