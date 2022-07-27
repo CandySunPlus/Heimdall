@@ -100,7 +100,6 @@ int BridgeManager::FindDeviceInterface(void) {
             for (int i = 1; i < port_numbers_len; i++) {
                 snprintf(usb_path + std::strlen(usb_path), sizeof(usb_path), ".%d", usb_port_numbers[i]);
             }
-            Interface::Print("Device usbpath: %s\n", usb_path);
         }
 
         for (int i = 0; i < BridgeManager::kSupportedDeviceCount; i++) {
