@@ -10,14 +10,14 @@ makedepends="libusb-dev"
 checkdepends=""
 install=""
 source="
-./heimdall/60-heimdall.rules
+./60-heimdall.rules
 "
 subpackages=""
 builddir="$srcdir/"
 options="!strip"
 
 build() {
-    cmake -B build ../ -DDISABLE_FRONTEND=ON
+    cmake -B build ../../ -DDISABLE_FRONTEND=ON
     cmake --build ./build
 }
 
